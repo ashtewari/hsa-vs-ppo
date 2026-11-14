@@ -10,6 +10,7 @@ Extract **de-identified financial summaries** from your Cigna claims, for compar
 
 **Limitations:** EOB templates differ. The extractor reads the **claim summary** of each EOB rather than individual service lines, so one claim becomes one row. Image-only scans and unusual or adjusted claim accounting are flagged for review, not guessed. Dental EOB PDFs are not parsed; the dental CSV already holds every amount. `member_owes` is the *estimated responsibility* shown by Cigna, **not proof of what you paid**.
 
+**Not affiliated with Cigna:** This project is not affiliated with, endorsed by, or sponsored by Cigna. "Cigna" and "myCigna" are trademarks of their owners and are used only to describe the file formats this tool reads.
 ## 1. Install on Windows (PowerShell)
 
 Install Python 3.10 or newer if needed. Put this folder somewhere private, then open PowerShell in it:

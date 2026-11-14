@@ -32,7 +32,7 @@ All three populated original PDFs also contain the synthetic line `Member: SENSI
 | unit_duplicate | first.pdf | Jan 10, 2026 | 400.00 | 100.00 | 0.00 | 250.00 | 50.00 | SAMPLE TEST PERSON / 998877665544 |
 | unit_duplicate | second.pdf | Jan 10, 2026 | 400.00 | 100.00 | 0.00 | 250.00 | 50.00 | identical bytes to first.pdf |
 
-The test fixtures use a simplified, fictional Cigna-like layout. They are NOT copies of Cigna templates and do not establish compatibility with every real Cigna EOB.
+The test fixtures use a simplified, fictional Cigna-like layout. They are NOT copies of Cigna templates and do not establish compatibility with every real Cigna EOB. Every populated fixture PDF is titled `SYNTHETIC TEST FIXTURE - not a Cigna document` so a copy can't be mistaken for a real EOB.
 
 ## Re-run tests
 

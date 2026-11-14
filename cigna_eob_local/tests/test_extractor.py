@@ -16,7 +16,7 @@ def fake_eob(path, date, billed, discount, not_covered, paid, owed, ident="SAMPL
              reference=True, not_covered_label="Amount not covered", extra_lines=()):
     doc = pymupdf.open()
     page = doc.new_page(width=612, height=792)
-    page.insert_text((50, 40), "Cigna Explanation of Benefits")
+    page.insert_text((50, 40), "SYNTHETIC TEST FIXTURE - not a Cigna document")
     page.insert_text((50, 70), f"Summary of a claim for services on {date}")
     page.insert_text((50, 90), f"For: {ident}" + (" - Reference # 998877665544" if reference else ""))
     for i, text in enumerate(extra_lines):
