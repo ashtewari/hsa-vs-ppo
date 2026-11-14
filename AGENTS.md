@@ -21,6 +21,8 @@ HSA vs. PPO decision toolkit built on the user's own Cigna Explanation of Benefi
 | [plan_parameters/](./plan_parameters/) | Plan-parameters validator, fictional example JSON, and tests. Real plan files live in `.local/`. |
 | [hsa_cost_model/](./hsa_cost_model/) | Phase 2 claims replay + Excel workbook writer (`hsa_cost_model.py`) and hand-calculated tests. |
 | [tools/privacy_check.py](./tools/privacy_check.py) | Repository privacy guard used by the pre-commit hook in [.githooks/](./.githooks/): blocks private file types and `.local/`, scans for PII patterns and private terms. |
+| [tools/profile_table.py](./tools/profile_table.py), [tools/convert_claims.py](./tools/convert_claims.py) | Data intake for non-Cigna or unfamiliar files: describe a CSV/XLSX without printing values; map any claims export onto the extractor's claim-summary layouts (or write a blank manual-entry template). |
+| [.github/skills/hsa-plan-decision/](./.github/skills/hsa-plan-decision/) | Agent skill that walks a non-expert through the whole analysis with their own data. **When helping someone run the analysis, load and follow it.** Keep it in sync when CLI options, layouts, or issue codes change. |
 | `.local/` | **Gitignored.** The user's real claims, EOBs, plan documents, estimates, plan parameters, and outputs. Never commit, print, or paste its contents. |
 
 ## Environment

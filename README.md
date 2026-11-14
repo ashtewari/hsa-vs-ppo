@@ -62,6 +62,12 @@ python hsa_cost_model\hsa_cost_model.py --claims .local\output\claims_anonymized
 
 Open the workbook. Edit the yellow cells on **Parameters** to try different contributions, tax rates or premiums, and read the **Assumptions** sheet before drawing conclusions.
 
+## Let an AI agent walk you through it
+
+If you're not sure what information you need, or your files come from another insurer, in another format, or you have none at all, use the **[hsa-plan-decision skill](./.github/skills/hsa-plan-decision/SKILL.md)** with an agent that supports Agent Skills (for example GitHub Copilot in VS Code or the Copilot CLI, which read `.github/skills/`; for Claude Code, copy the folder to `.claude/skills/`). Ask: *"Should I switch to an HSA plan? Walk me through it."*
+
+The skill interviews you, tells you exactly which documents to fetch and where to find them, and converts any claims export with `tools/profile_table.py` and `tools/convert_claims.py`. If you have no records, it builds estimates from a short interview about your family's care. It then runs the steps above and explains the result. It follows a strict privacy protocol: the agent works through local tools that print counts only, and never reads your claims.
+
 ## Repository layout
 
 | Path | Purpose |
@@ -70,7 +76,8 @@ Open the workbook. Edit the yellow cells on **Parameters** to try different cont
 | [cigna_eob_synthetic_test_data/](./cigna_eob_synthetic_test_data/) | Synthetic fixture PDFs and expected CSVs (no real data) |
 | [plan_parameters/](./plan_parameters/) | Plan-parameters JSON validator and a fictional example |
 | [hsa_cost_model/](./hsa_cost_model/) | Phase 2 claims replay and Excel workbook writer |
-| [tools/](./tools/) | `privacy_check.py`, the repository privacy guard used by [.githooks/pre-commit](./.githooks/pre-commit) |
+| [tools/](./tools/) | `privacy_check.py` (the repository privacy guard used by [.githooks/pre-commit](./.githooks/pre-commit)); `profile_table.py` and `convert_claims.py` for bringing in claims exports from any insurer |
+| [.github/skills/hsa-plan-decision/](./.github/skills/hsa-plan-decision/) | Agent skill that guides anyone through the whole analysis with their own data |
 | [PRD.md](./PRD.md) | Requirements, design decisions, limitations |
 | [AGENTS.md](./AGENTS.md) | Guidance for AI coding agents working in this repository |
 

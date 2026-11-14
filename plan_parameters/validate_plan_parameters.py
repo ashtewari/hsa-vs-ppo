@@ -145,6 +145,12 @@ def validate(data: dict) -> Report:
     fsa = r.number(tax, "healthcare_fsa_annual", "tax")
 
     plans = r.section(data, "plans", "")
+    current = data.get("current_plan")
+    if current is not None and current not in plans:
+        r.errors.append("current_plan: must be the id of one of the plans")
+    elif current is None and sum(1 for p in plans.values() if isinstance(p, dict) and not p.get("hsa_eligible")) != 1:
+        r.errors.append("current_plan: required unless exactly one plan is non-HSA (it names the plan that produced "
+                        "the claims history)")
     for pid, plan in plans.items():
         path = f"plans.{pid}"
         if plan.get("source") not in sources:

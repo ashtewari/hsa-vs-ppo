@@ -27,6 +27,11 @@ def costs(claims, plan, params=PARAMS):
     return [r.cost for r in m.replay(claims, params, plan)]
 
 
+def replace_category(c, category):
+    import dataclasses
+    return dataclasses.replace(c, category=category)
+
+
 class ReplayTests(unittest.TestCase):
     def test_aggregate_family_deductible_crossed_mid_claim(self):
         claims = [claim("C001", "Member_A", "3000"), claim("C002", "Member_B", "2000", month=2)]
@@ -48,6 +53,18 @@ class ReplayTests(unittest.TestCase):
         # Per-person OOP 3000 caps A; B still pays 500 deductible + 20% of 500.
         self.assertEqual(costs(claims, "example_ppo"), [D("3000.00"), D("600.00")])
 
+    def test_current_plan_can_be_an_hdhp(self):
+        params = copy.deepcopy(PARAMS)
+        params["current_plan"] = "example_hdhp"
+        self.assertEqual(m.current_plan_id(params), "example_hdhp")
+        c = claim("C001", allowed="400", owes="400", paid="0", category="medical_unspecified")
+        # Under the current HDHP the deductible was used, so the claim is typed as a deductible service.
+        self.assertEqual(costs([c], "example_hdhp", params), [D("400.00")])
+        self.assertEqual(costs([c], "example_ppo", params), [D("400.00")])
+        params["current_plan"] = "nope"
+        with self.assertRaises(ValueError):
+            m.current_plan_id(params)
+
     def test_preventive_is_free_and_does_not_accumulate(self):
         claims = [claim("C001", allowed="300", category="preventive", paid="300"), claim("C002", allowed="100", month=2)]
         self.assertEqual(costs(claims, "example_hdhp"), [D("0.00"), D("100.00")])
@@ -65,6 +82,47 @@ class ReplayTests(unittest.TestCase):
         rx = claim("C001", allowed="15", owes="10", paid="5", category="pharmacy", coverage="pharmacy", network="unknown")
         self.assertEqual(costs([rx], "example_ppo"), [D("10")])
         self.assertEqual(costs([rx], "example_hdhp"), [D("15")])
+
+    def test_rx_tier_maps_to_each_plans_own_copay(self):
+        params = copy.deepcopy(PARAMS)
+        params["plans"]["example_hdhp"]["in_network"]["pharmacy"]["deductible_applies"] = False
+        params["plans"]["example_hdhp"]["in_network"]["pharmacy"]["retail_30"] = [5, 35, 60]
+        tier1 = claim("C001", allowed="40", owes="10", paid="30", category="pharmacy", coverage="pharmacy", network="unknown")
+        odd = claim("C002", allowed="40", owes="12", paid="28", category="pharmacy", coverage="pharmacy", network="unknown")
+        self.assertEqual(m.classify(tier1, params["plans"]["example_ppo"])[0], "rx:retail_30:0")
+        self.assertEqual(costs([tier1, odd], "example_hdhp", params), [D("5.00"), D("12")])
+
+    def test_explicit_category_beats_zero_owed_preventive_guess(self):
+        c = claim("C001", allowed="5000", owes="0", paid="5000", category="inpatient")
+        current = PARAMS["plans"]["example_ppo"]
+        self.assertEqual(m.classify(c, current)[0], "inpatient")
+        self.assertEqual(m.classify(replace_category(c, "medical_unspecified"), current)[0], "preventive")
+        # A paid-in-full extra charge in a copay category is bundled under that visit's copay.
+        extra = claim("C002", allowed="4.16", owes="0", paid="4.16", category="urgent_care")
+        self.assertEqual(m.classify(extra, current)[0], "bundled:urgent_care")
+        self.assertEqual(costs([extra], "example_ppo"), [D("0.00")])
+        self.assertEqual(costs([extra], "example_hdhp"), [D("4.16")])
+
+    def test_missing_inputs_are_reported_before_running(self):
+        params = copy.deepcopy(PARAMS)
+        params["tax"]["state_marginal_rate"] = None
+        params["plans"]["example_hdhp"]["out_of_network"]["oop_max"]["family"] = None
+        self.assertEqual(m.missing_inputs(params), ["tax.state_marginal_rate",
+                                                    "plans.example_hdhp.out_of_network.oop_max.family"])
+        self.assertEqual(m.missing_inputs(PARAMS), [])
+
+    def test_several_claims_files_combine_with_unique_ids(self):
+        with tempfile.TemporaryDirectory() as t:
+            paths = []
+            for i in (1, 2):
+                p = Path(t) / f"c{i}.csv"
+                p.write_text("eob_id,service_month,sequence_in_month,coverage_type,category,member_tag,network,billed,"
+                             "discount,not_covered,allowed_estimated,allowed_basis,plan_paid,member_owes,source,review_status\n"
+                             "CLM_00001,2025-01,001,medical,inpatient,Member_A,in_network,100,0,0,100,x,80,20,claims_csv,x\n",
+                             encoding="utf-8")
+                paths.append(p)
+            ids = [c.id for c in m.load_claims_files(paths)]
+            self.assertEqual(ids, ["CLM_00001", "CLM_00001.2"])
 
     def test_dental_and_vision_pass_through_unreplayed(self):
         res = m.replay([claim("C001", allowed="200", owes="40", coverage="dental", category="dental")], PARAMS, "example_hdhp")

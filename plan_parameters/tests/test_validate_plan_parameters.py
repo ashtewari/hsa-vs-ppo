@@ -57,6 +57,16 @@ class ValidatePlanParametersTests(unittest.TestCase):
         data["tax"]["healthcare_fsa_annual"] = 1000
         self.assertTrue(any("FSA" in w for w in vpp.validate(data).warnings))
 
+    def test_current_plan_required_when_not_implied(self):
+        data = copy.deepcopy(EXAMPLE)
+        data["plans"]["example_ppo"]["hsa_eligible"] = True
+        data["plans"]["example_ppo"]["employer_hsa"] = {"self": 0, "other_tiers": 0}
+        self.assertTrue(any(e.startswith("current_plan") for e in vpp.validate(data).errors))
+        data["current_plan"] = "example_hdhp"
+        self.assertFalse(any(e.startswith("current_plan") for e in vpp.validate(data).errors))
+        data["current_plan"] = "missing_plan"
+        self.assertTrue(any(e.startswith("current_plan") for e in vpp.validate(data).errors))
+
 
 if __name__ == "__main__":
     unittest.main()

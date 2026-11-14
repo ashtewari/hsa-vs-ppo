@@ -88,6 +88,14 @@ ISSUE_CODES = (
 )
 APPROVED_VALUES = {"yes", "y", "true", "1"}
 CENT = Decimal("0.01")
+# --quiet: print aggregates only (no filenames, no member-tag map), e.g. when an AI assistant reads the terminal.
+QUIET = False
+
+
+def private_print(msg: str):
+    """Terminal lines that may contain filenames or first names; suppressed in --quiet mode."""
+    if not QUIET:
+        print(msg)
 
 # myCigna "Claim Summary" exports, recognised by header. Checked in order: dental is a superset of medical.
 CLAIM_CSV_FORMATS = {
@@ -706,7 +714,7 @@ def scan_pdfs(input_dir: Path, id_prefix: str = "EOB") -> list[tuple[str, Path, 
     by_ref: dict[str, list[list[str]]] = defaultdict(list)
     for n, pdf in enumerate(pdfs, start=1):
         anon = f"{id_prefix}_{n:05d}"
-        print(f"Reading {n}/{len(pdfs)}: {pdf.name}  [{anon}]")  # terminal only; never in exported CSVs
+        private_print(f"Reading {n}/{len(pdfs)}: {pdf.name}  [{anon}]")  # terminal only; never in exported CSVs
         parsed = parse_pdf(pdf)
         dup_issues: list[str] = []
         try:
@@ -752,7 +760,7 @@ def records_from_claims_csvs(csv_paths: list[Path], input_dir: Path | None) -> l
             keys_by_id[rec["id"]] = key
             dup_groups[dup_key].append(rec)
             records.append(rec)
-        print(f"Claims CSV {i}/{len(csv_paths)}: {path.name} -> {kind}, {len(raw_rows)} rows "
+        print(f"Claims CSV {i}/{len(csv_paths)}: {'(name hidden)' if QUIET else path.name} -> {kind}, {len(raw_rows)} rows "
               f"[CLM_{first:05d}..CLM_{len(records):05d}]")  # terminal only
     for group in dup_groups.values():
         if len(group) > 1:
@@ -762,9 +770,9 @@ def records_from_claims_csvs(csv_paths: list[Path], input_dir: Path | None) -> l
     tags = member_tags(set(keys_by_id.values()))
     for rec in records:
         rec["member_tag"] = tags.get(keys_by_id[rec["id"]], "")
-    print("Member tags (terminal only; never written to CSV):")
+    print(f"Member tags: {len(tags)}" + ("" if QUIET else " (terminal only; never written to CSV):"))
     for key, tag in sorted(tags.items(), key=lambda kv: kv[1]):
-        print(f"  {tag} = {key.title()}")
+        private_print(f"  {tag} = {key.title()}")
 
     # Fill allowed / discount / not-covered for medical rows from matching EOB PDFs (in memory only).
     medical = [r for r in records if r["coverage_type"] == "medical"]
@@ -781,17 +789,17 @@ def records_from_claims_csvs(csv_paths: list[Path], input_dir: Path | None) -> l
             hits = index.get(key, []) if None not in key else []
             if len(hits) == 1:
                 matched[hits[0]["id"]].append((anon, parsed, dup_issues))
-                print(f"  {anon} -> {hits[0]['id']}")
+                private_print(f"  {anon} -> {hits[0]['id']}")
             elif len(hits) > 1:
                 for rec in hits:
                     rec["issues"].append("ambiguous_pdf_match")
-                print(f"  {anon} -> ambiguous ({len(hits)} claim rows)")
+                private_print(f"  {anon} -> ambiguous ({len(hits)} claim rows)")
             else:
                 unmatched.append((anon, pdf.name))
         if unmatched:
             print(f"{len(unmatched)} PDF(s) did not match any medical claim row (not imported):")
             for anon, name in unmatched:
-                print(f"  {anon}: {name}")
+                private_print(f"  {anon}: {name}")
     for rec in medical:
         hits = matched.get(rec["id"], [])
         if not hits:
@@ -826,8 +834,10 @@ def extract(input_dir: Path | None, output_dir: Path, claims_csvs: list[Path] | 
         records = records_from_claims_csvs(list(claims_csvs), input_dir)
     elif input_dir is not None:
         records = records_from_pdfs(input_dir)
+    elif estimates is not None:
+        records = []
     else:
-        raise ValueError("Provide --input (EOB PDFs) and/or --claims-csv.")
+        raise ValueError("Provide --input (EOB PDFs), --claims-csv and/or --estimates.")
     if estimates is not None:
         est = read_estimates(estimates)
         print(f"Estimates: {len(est)} rows [EST_00001..EST_{len(est):05d}]")
@@ -852,14 +862,17 @@ def main():
     p_extract.add_argument("--estimates", type=Path, help="Optional estimates CSV for spending with no claim record")
     p_extract.add_argument("--output", type=Path, required=True, help="Folder for de-identified CSVs")
     p_extract.add_argument("--force", action="store_true", help="Overwrite an existing review_candidates.csv after backing it up")
+    p_extract.add_argument("--quiet", action="store_true", help="Print aggregates only: no filenames or member-tag map")
     p_final = sub.add_parser("finalize", help="Rebuild approved financial summaries after editing review CSV.")
     p_final.add_argument("--review", type=Path, required=True, help="Edited review_candidates.csv")
     p_final.add_argument("--output", type=Path, required=True, help="Folder for de-identified CSVs")
     args = parser.parse_args()
+    global QUIET
+    QUIET = bool(getattr(args, "quiet", False))
     try:
         if args.command == "extract":
-            if args.input is None and not args.claims_csv:
-                parser.error("provide --input and/or --claims-csv")
+            if args.input is None and not args.claims_csv and args.estimates is None:
+                parser.error("provide --input, --claims-csv and/or --estimates")
             if args.input is not None and not args.input.is_dir():
                 parser.error("--input must be an existing directory")
             for path in args.claims_csv or []:

@@ -277,6 +277,29 @@ class EOBLocalTests(unittest.TestCase):
         self.assertEqual(summary[("2026", "pharmacy", "estimate")]["member_responsibility"], "20.00")
         self.assertEqual(summary[("2026", "medical", "actual")]["accepted_claims"], "1")
 
+    def test_quiet_mode_prints_no_filenames_or_names(self):
+        import subprocess
+        fake_eob(self.inp / "secret_file_name.pdf", "January 10, 2026", 400, 100, 0, 250, 50)
+        medical = self.root / "Hidden_Export_Name.csv"
+        write_rows(medical, ["Service Date", "Patient", "Provider", "Status", "Billed", "Plan Paid",
+                             "Patient Responsibility"],
+                   [["01/10/2026", "Pat Secretname", "Dr Hidden", "Processed", "$400.00", "$250.00", "$50.00"]])
+        script = Path(eob.__file__)
+        out = subprocess.run([sys.executable, str(script), "extract", "--quiet", "--claims-csv", str(medical),
+                              "--input", str(self.inp), "--output", str(self.out)],
+                             capture_output=True, text=True, check=True).stdout
+        self.assertIn("Member tags: 1", out)
+        for secret in ("secret_file_name", "Hidden_Export_Name", "Pat", "Secretname"):
+            self.assertNotIn(secret, out)
+
+    def test_estimates_only_run_without_claims(self):
+        est = self.root / "estimates.csv"
+        write_rows(est, eob.ESTIMATE_FIELDS, [["Member_A", "medical", "office_visit", "2025-01", "2025-12", "3",
+                                               "150.00", "125.00", "25.00"]])
+        eob.extract(None, self.out, estimates=est)
+        rows = read_csv(self.out / "claims_anonymized.csv")
+        self.assertEqual([r["service_month"] for r in rows], ["2025-01", "2025-04", "2025-07", "2025-10"])
+
     def test_estimates_that_do_not_reconcile_are_rejected(self):
         fake_eob(self.inp / "a.pdf", "January 10, 2026", 400, 100, 0, 250, 50)
         est = self.root / "estimates.csv"

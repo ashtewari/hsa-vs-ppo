@@ -31,6 +31,7 @@ SERVICE_BY_CATEGORY = {
     "outpatient_procedure": "outpatient_hospital", "therapy": "office_visit_specialist",
 }
 COPAY_SERVICES = ("office_visit_pcp", "office_visit_specialist", "urgent_care", "emergency")
+RX_CHANNELS = ("retail_30", "retail_90", "mail_90")
 NO_DEDUCTIBLE_SERVICE = "xray_lab"          # current plan charged plain coinsurance
 DEDUCTIBLE_SERVICE = "complex_imaging"      # current plan applied the deductible (imaging / outpatient-type)
 MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -106,15 +107,66 @@ def load_claims(path: Path, plan_year_start_month: int = 1) -> list[Claim]:
     return claims
 
 
+def load_claims_files(paths: list[Path], plan_year_start_month: int = 1) -> list[Claim]:
+    """Combine several claims_anonymized.csv files (e.g. a PDF-only run and a CSV run); IDs are kept unique."""
+    claims, seen = [], set()
+    for i, path in enumerate(paths, start=1):
+        for c in load_claims(path, plan_year_start_month):
+            if c.id in seen:
+                c = replace(c, id=f"{c.id}.{i}")
+            seen.add(c.id)
+            claims.append(c)
+    return claims
+
+
+REQUIRED_SERVICES = ("preventive", "office_visit_pcp", "office_visit_specialist", "complex_imaging", "xray_lab",
+                     "inpatient", "outpatient_hospital", "urgent_care", "emergency")
+
+
+def missing_inputs(params: dict) -> list[str]:
+    """Values the model needs as numbers/rules. The validator allows nulls; the model can't."""
+    missing = []
+
+    def need(obj: Any, path: str, *keys: str):
+        for k in keys:
+            if not isinstance(obj, dict) or obj.get(k) is None:
+                missing.append(f"{path}.{k}")
+
+    need(params, "", "coverage_tier", "pay_periods_per_year")
+    need(params.get("tax"), "tax", "federal_marginal_rate", "state_marginal_rate", "fica_rate")
+    need(params.get("irs_limits"), "irs_limits", "hsa_contribution_self", "hsa_contribution_family", "hsa_catch_up_55")
+    family = params.get("coverage_tier") in FAMILY_TIERS
+    for pid, plan in (params.get("plans") or {}).items():
+        p = f"plans.{pid}"
+        need(plan.get("premium_per_paycheck"), f"{p}.premium_per_paycheck", params.get("coverage_tier", "employee"))
+        if plan.get("hsa_eligible"):
+            need(plan.get("employer_hsa"), f"{p}.employer_hsa", "other_tiers" if family else "self")
+        for net in ("in_network", "out_of_network"):
+            section = plan.get(net) or {}
+            need(section.get("deductible"), f"{p}.{net}.deductible", "individual", "family", "family_type")
+            need(section.get("oop_max"), f"{p}.{net}.oop_max", "individual", "family", "family_type")
+            need(section, f"{p}.{net}", "coinsurance")
+        inn = plan.get("in_network") or {}
+        need(inn.get("services"), f"{p}.in_network.services", *REQUIRED_SERVICES)
+        need(inn.get("pharmacy"), f"{p}.in_network.pharmacy", "deductible_applies")
+    return missing
+
+
 def load_params(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def current_plan_id(params: dict) -> str:
-    """The non-HSA plan is the current plan whose cost sharing produced the historical claims."""
+    """The plan whose cost sharing produced the historical claims: 'current_plan', else the only non-HSA plan."""
+    explicit = params.get("current_plan")
+    if explicit:
+        if explicit not in params["plans"]:
+            raise ValueError(f"current_plan '{explicit}' is not one of the plans.")
+        return explicit
     ids = [pid for pid, p in params["plans"].items() if not p.get("hsa_eligible")]
     if len(ids) != 1:
-        raise ValueError("Exactly one non-HSA (current) plan is required in the plan parameters.")
+        raise ValueError("Set 'current_plan' in the plan parameters to the plan whose cost sharing produced the "
+                         "claims history (required unless exactly one plan is non-HSA).")
     return ids[0]
 
 
@@ -135,8 +187,16 @@ def combined_tax_rate(params: dict) -> Decimal:
 def classify(claim: Claim, current: dict) -> tuple[str, Decimal]:
     """Return (service key, copay) for a claim. Copay is only meaningful for pharmacy."""
     if claim.coverage_type == "pharmacy":
-        # Tier is unknown; the copay actually charged under the current plan identifies it.
-        return ("rx_preventive", ZERO) if claim.member_owes == 0 else ("rx", claim.member_owes)
+        # Tier is unknown; the copay actually charged under the current plan identifies it when it matches
+        # one of the current plan's tier copays, so another plan's copay for the same tier can be used.
+        if claim.member_owes == 0:
+            return "rx_preventive", ZERO
+        rx = current["in_network"].get("pharmacy") or {}
+        for channel in RX_CHANNELS:
+            for i, copay in enumerate(rx.get(channel) or []):
+                if copay is not None and money(copay) == claim.member_owes:
+                    return f"rx:{channel}:{i}", claim.member_owes
+        return "rx", claim.member_owes
     services = current["in_network"]["services"]
     copays = [(money(services[s]["copay"]), s) for s in COPAY_SERVICES
               if (services.get(s) or {}).get("rule") == "copay"]
@@ -148,14 +208,21 @@ def classify(claim: Claim, current: dict) -> tuple[str, Decimal]:
         above = sorted(c for c in copays if c[0] > claim.member_owes)
         if above:
             return above[0][1], ZERO
-    if claim.member_owes == 0 and claim.plan_paid >= claim.allowed:
-        # Out-of-network claims paid in full are emergency-related charges bundled under a copay elsewhere;
-        # in-network ones are most likely preventive care.
-        return ("bundled_with_copay" if claim.network == "out_of_network" else "preventive"), ZERO
     if claim.network == "out_of_network":
+        # Paid in full out of network: an emergency-related charge bundled under a copay elsewhere.
+        if claim.member_owes == 0 and claim.plan_paid >= claim.allowed:
+            return "bundled:emergency", ZERO
         return "out_of_network", ZERO
-    if claim.category in SERVICE_BY_CATEGORY and claim.category not in ("laboratory", "imaging"):
-        return SERVICE_BY_CATEGORY[claim.category], ZERO
+    explicit = SERVICE_BY_CATEGORY.get(claim.category) if claim.category not in ("laboratory", "imaging") else None
+    if claim.member_owes == 0 and claim.plan_paid >= claim.allowed:
+        # Paid in full: bundled under a copay visit (free today, but not under other plans), a categorised
+        # service (e.g. a hospital stay after the OOP maximum was reached), or else preventive care.
+        if explicit in COPAY_SERVICES:
+            return f"bundled:{explicit}", ZERO
+        return explicit or "preventive", ZERO
+    if explicit:
+        # An explicit category (set by the extractor or during review) wins over payment-pattern guesses.
+        return explicit, ZERO
     # Read the current plan's payment pattern: plain coinsurance means no deductible applied.
     coinsurance = Decimal(str(current["in_network"]["coinsurance"]))
     if abs(claim.member_owes - money(coinsurance * claim.allowed)) <= CENT:
@@ -216,12 +283,17 @@ def plan_rule(plan: dict, service: str, copay: Decimal, is_current: bool) -> tup
     inn = plan["in_network"]
     if service == "rx_preventive":
         return "covered_100", inn, ZERO, ZERO
-    if service == "bundled_with_copay":
+    if service.startswith("bundled:"):
         if is_current:
             return "covered_100", inn, ZERO, ZERO
-        service = "emergency"
-    if service == "rx":
+        service = service.split(":", 1)[1]
+    if service == "rx" or service.startswith("rx:"):
         rule = "rx_deductible_then_copay" if inn["pharmacy"]["deductible_applies"] else "copay"
+        if service.startswith("rx:"):
+            _, channel, tier = service.split(":")
+            tiers = inn["pharmacy"].get(channel) or []
+            if int(tier) < len(tiers) and tiers[int(tier)] is not None:
+                copay = money(tiers[int(tier)])
         return rule, inn, ZERO, copay
     if service == "out_of_network":
         oon = plan["out_of_network"]
@@ -341,7 +413,7 @@ def scenario_claims(claims: list[Claim], year: int, kind: str, cfg: Config, para
     current = params["plans"][current_plan_id(params)]
     if kind == "low":
         return [c for c in year_claims if c.coverage_type not in REPLAYED
-                or classify(c, current)[0] in ("rx", "rx_preventive", "preventive")]
+                or classify(c, current)[0].startswith("rx") or classify(c, current)[0] == "preventive"]
     if kind == "high":
         members = sorted({c.member for c in year_claims if c.coverage_type in REPLAYED}) or ["Member_A"]
         return year_claims + [extra_event(members[0], year, cfg.high_event_allowed, month=6)]
@@ -832,11 +904,13 @@ def build_workbook(claims: list[Claim], params: dict, cfg: Config, out: Path, so
         f"Current plan ({names[current]}) produced the historical claims; its actual copays identify each claim's "
         "service type (PCP / specialist / urgent care / ER) and each prescription's copay tier.",
         "Other medical claims are typed by the current plan's payment pattern: exactly the coinsurance owed -> "
-        "no-deductible service (lab/X-ray); otherwise deductible-then-coinsurance (imaging/outpatient). In-network "
-        "claims with $0 owed and paid in full are treated as preventive (free under every plan); out-of-network ones "
-        "as emergency-related charges bundled under a copay (deductible + coinsurance under the HSA plans).",
-        "HDHP prescriptions: full allowed cost until the combined medical deductible is met, then the same copay "
-        "as charged today. $0 prescriptions are treated as ACA preventive (free under every plan).",
+        "no-deductible service (lab/X-ray); otherwise deductible-then-coinsurance (imaging/outpatient). Claims with "
+        "$0 owed and paid in full are: bundled under a visit's copay when categorised as a copay service or "
+        "out-of-network (free today; deductible + coinsurance under other plans); their category's rule when "
+        "categorised otherwise; else preventive (free under every plan).",
+        "Prescriptions: the copay paid today identifies the tier (retail 30-day / 90-day / mail order); each plan's "
+        "own copay for that tier is used (the historical copay if no tier matches). HSA plans charge the full "
+        "allowed cost until the combined medical deductible is met. $0 prescriptions are treated as ACA preventive.",
         "Out-of-network claims use each plan's out-of-network deductible, OOP maximum and coinsurance "
         "(separate accumulators), except urgent care / ER copays.",
         "Allowed (negotiated) amounts are assumed unchanged under every plan (same Cigna network).",
@@ -867,7 +941,8 @@ def build_workbook(claims: list[Claim], params: dict, cfg: Config, out: Path, so
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Replay de-identified claims under each plan and write an Excel comparison.")
-    ap.add_argument("--claims", type=Path, required=True, help="claims_anonymized.csv from the Phase 1 extractor")
+    ap.add_argument("--claims", type=Path, nargs="+", required=True,
+                    help="claims_anonymized.csv from the Phase 1 extractor (several files are combined)")
     ap.add_argument("--plans", type=Path, required=True, help="Validated plan-parameters JSON")
     ap.add_argument("--output", type=Path, required=True, help="Workbook to write (.xlsx)")
     ap.add_argument("--employee-hsa", type=Decimal, help="Your annual HSA contribution (default: the maximum allowed)")
@@ -888,8 +963,13 @@ def main() -> int:
                  baseline_tolerance=args.tolerance, base_year=args.base_year)
     try:
         params = load_params(args.plans)
-        claims = load_claims(args.claims, int(params.get("plan_year_start_month", 1)))
-        build_workbook(claims, params, cfg, args.output, {"claims": args.claims.name, "plans": args.plans.name})
+        gaps = missing_inputs(params)
+        if gaps:
+            raise ValueError("The plan parameters are missing values the model needs: " + ", ".join(gaps))
+        current_plan_id(params)
+        claims = load_claims_files(args.claims, int(params.get("plan_year_start_month", 1)))
+        build_workbook(claims, params, cfg, args.output,
+                       {"claims": ", ".join(p.name for p in args.claims), "plans": args.plans.name})
     except (OSError, ValueError, KeyError, csv.Error, json.JSONDecodeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

@@ -63,7 +63,7 @@ How the inputs combine:
 | EOB PDF in PDF-only mode | `EOB_xxxxx`, `source=eob_pdf` | Read from the claim summary |
 | Estimates row | `EST_xxxxx`, `source=estimate` | As entered |
 
-`member_owes` is the CSV's **Patient Responsibility** (not "I Owe", which subtracts payments already made). Patients are replaced by anonymous `Member_A`, `Member_B`, … tags. Tags are assigned by first name in alphabetical order, so the same person gets the same tag in every file. The tag map, the CSV/PDF → ID map, and unmatched PDF filenames are printed to your **terminal only**.
+`member_owes` is the CSV's **Patient Responsibility** (not "I Owe", which subtracts payments already made). Patients are replaced by anonymous `Member_A`, `Member_B`, … tags. Tags are assigned by first name in alphabetical order, so the same person gets the same tag in every file. The tag map, the CSV/PDF → ID map, and unmatched PDF filenames are printed to your **terminal only**. Add `--quiet` to print aggregates only (no filenames, no tag map), for example when an AI assistant reads the terminal for you.
 
 Outputs:
 
@@ -170,7 +170,7 @@ For a claim-by-claim model you can later share `claims_anonymized.csv` after ins
 ## Commands
 
 ```text
-python cigna_eob_extract.py extract [--claims-csv CSV ...] [--input PDF_FOLDER] [--estimates CSV] --output CSV_FOLDER [--force]
+python cigna_eob_extract.py extract [--claims-csv CSV ...] [--input PDF_FOLDER] [--estimates CSV] --output CSV_FOLDER [--force] [--quiet]   # at least one input; estimates alone work when there are no claim records
 python cigna_eob_extract.py finalize --review REVIEW_CSV --output CSV_FOLDER
 python leak_scan.py --outputs CSV_FOLDER [--claims-csv CSV ...] [--input PDF_FOLDER] [--terms-file TXT]
 ```

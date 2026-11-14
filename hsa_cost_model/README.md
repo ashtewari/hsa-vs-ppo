@@ -19,7 +19,7 @@ python hsa_cost_model\hsa_cost_model.py `
   --output .local\output\hsa_comparison.xlsx
 ```
 
-Options (defaults in brackets): `--employee-hsa` [the maximum allowed], `--employer-hsa-timing per_paycheck|lump_sum_january` [per_paycheck], `--post-tax-premiums` [pre-tax], `--return` [0.06], `--medical-inflation` [0.05], `--premium-inflation` [0.05], `--years` [5], `--high-event` [20000], `--tolerance` [0.10], `--base-year` [latest complete year].
+Options (defaults in brackets): `--claims` accepts several files (for example a PDF-only run plus a CSV run; they are combined), `--employee-hsa` [the maximum allowed], `--employer-hsa-timing per_paycheck|lump_sum_january` [per_paycheck], `--post-tax-premiums` [pre-tax], `--return` [0.06], `--medical-inflation` [0.05], `--premium-inflation` [0.05], `--years` [5], `--high-event` [20000], `--tolerance` [0.10], `--base-year` [latest complete year]. Before running, the script lists any plan-parameter values it needs that are still `null`.
 
 The terminal prints each plan's typical-year net cost and the baseline check.
 
@@ -29,8 +29,10 @@ The terminal prints each plan's typical-year net cost and the baseline check.
 - Each claim's service type is inferred from what the **current plan** (the one non-HSA plan) actually charged:
   - Copay amounts identify PCP, specialist, urgent care or ER visits, including visits where the allowed amount was below the copay.
   - Exactly the coinsurance → lab/X-ray (no deductible). Anything else → deductible-then-coinsurance.
-  - $0 owed and paid in full → preventive (in-network), or emergency-related and bundled (out-of-network).
-  - For prescriptions, the copay actually paid identifies the tier. Under an HSA plan the full allowed cost is paid until the deductible is met, then the same copay.
+  - $0 owed and paid in full → bundled under the visit's copay if the claim's category is a copay service, or if it's out-of-network (free today; deductible and coinsurance under other plans). Other categories (for example a hospital stay after the OOP maximum was reached) use their own rule; uncategorized claims are treated as preventive.
+  - An explicit category (other than lab/imaging) wins over the payment-pattern guess, so fixing categories during review changes the replay.
+  - For prescriptions, the copay actually paid identifies the tier (retail 30-day / 90-day / mail order) when it matches one of the current plan's tier copays; each plan's own copay for that tier is then used. Unmatched copays are carried over unchanged. Under an HSA plan the full allowed cost is paid until the deductible is met.
+- Set `current_plan` in the plan parameters if the plan that produced the history is an HDHP, or if there are several non-HSA options.
 - Dental and vision are identical under every option. They are excluded from net cost but included as HSA-eligible spending in cash flow and the projection.
 
 Net annual cost = premiums − tax saved on pre-tax premiums + modeled medical/Rx out-of-pocket − employer HSA − tax saved on your HSA contribution. Your own HSA contribution is not a cost.
