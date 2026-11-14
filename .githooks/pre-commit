@@ -1,0 +1,13 @@
+#!/bin/sh
+# Privacy guard: blocks commits that could leak real health or personal data.
+# Enable once per clone:  git config core.hooksPath .githooks
+root=$(git rev-parse --show-toplevel) || exit 1
+for py in "$root/.venv/Scripts/python.exe" "$root/.venv/bin/python" python3 python py; do
+  if [ -x "$py" ] || command -v "$py" >/dev/null 2>&1; then
+    if "$py" -c "import sys; sys.exit(sys.version_info < (3, 10))" >/dev/null 2>&1; then
+      exec "$py" "$root/tools/privacy_check.py" --staged
+    fi
+  fi
+done
+echo "privacy guard: no Python 3.10+ found, so the commit is blocked." >&2
+exit 1

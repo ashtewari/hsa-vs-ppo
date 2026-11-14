@@ -1,0 +1,3 @@
+﻿eob_id,service_month,sequence_in_month,coverage_type,category,member_tag,network,billed,discount,not_covered,allowed_estimated,allowed_basis,plan_paid,member_owes,source,review_status
+EOB_00001,2025-11,001,medical,medical_unspecified,,unknown,189.00,70.05,0.00,118.95,derived_from_billed_discount_notcovered,107.06,11.89,eob_pdf,auto_validated
+EOB_00002,2026-01,001,medical,medical_unspecified,,unknown,400.00,100.00,0.00,300.00,derived_from_billed_discount_notcovered,250.00,50.00,eob_pdf,auto_validated

@@ -1,0 +1,5 @@
+﻿approved,eob_id,service_month,coverage_type,category,member_tag,network,billed,discount,not_covered,allowed_estimated,allowed_basis,plan_paid,member_owes,source,review_status,issue_codes
+yes,EOB_00001,2025-11,medical,medical_unspecified,,unknown,189.00,70.05,0.00,118.95,derived_from_billed_discount_notcovered,107.06,11.89,eob_pdf,auto_validated,
+yes,EOB_00002,2026-01,medical,medical_unspecified,,unknown,400.00,100.00,0.00,300.00,derived_from_billed_discount_notcovered,250.00,50.00,eob_pdf,auto_validated,
+no,EOB_00003,2026-02,medical,medical_unspecified,,unknown,300.00,50.00,0.00,250.00,derived_from_billed_discount_notcovered,100.00,40.00,eob_pdf,needs_manual_review,paid_plus_owed_not_reconciled
+no,EOB_00004,,medical,medical_unspecified,,unknown,,,,,,,,eob_pdf,needs_manual_review,scanned_or_no_selectable_text;missing_billed;missing_plan_paid;missing_member_owes;missing_allowed;missing_not_covered;missing_discount

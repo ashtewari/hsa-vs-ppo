@@ -1,0 +1,8 @@
+* text=auto
+
+# Synthetic fixtures are compared byte-for-byte: never convert their line endings.
+*.pdf binary
+cigna_eob_synthetic_test_data/**/*.csv -text
+
+# Shell hooks must keep LF endings to run under sh.
+.githooks/* text eol=lf

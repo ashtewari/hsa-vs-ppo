@@ -1,0 +1,2 @@
+﻿approved,eob_id,service_month,coverage_type,category,member_tag,network,billed,discount,not_covered,allowed_estimated,allowed_basis,plan_paid,member_owes,source,review_status,issue_codes
+no,EOB_00001,2026-01,medical,medical_unspecified,,unknown,400.00,100.00,0.00,300.00,derived_from_billed_discount_notcovered,70.00,90.00,eob_pdf,needs_manual_review,paid_plus_owed_not_reconciled

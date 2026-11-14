@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "plan_year": 2027,
+  "plan_year_start_month": 1,
+  "coverage_tier": "family",
+  "pay_periods_per_year": 26,
+  "sources": {
+    "EX1": "Fictional example values for illustration only - copy to .local and replace with your plans' figures"
+  },
+  "irs_limits": {
+    "source": "EX1 - always verify against the IRS figures for the plan year",
+    "hsa_contribution_self": 4500,
+    "hsa_contribution_family": 9000,
+    "hsa_catch_up_55": 1000,
+    "hdhp_min_deductible_self": 1750,
+    "hdhp_min_deductible_family": 3500,
+    "hdhp_max_oop_self": 8700,
+    "hdhp_max_oop_family": 17400
+  },
+  "tax": {
+    "federal_marginal_rate": 0.22,
+    "state_marginal_rate": 0.05,
+    "fica_rate": 0.0765,
+    "hsa_via_payroll": true,
+    "age_55_plus": false,
+    "healthcare_fsa_annual": null
+  },
+  "plans": {
+    "example_ppo": {
+      "name": "Example PPO",
+      "hsa_eligible": false,
+      "source": "EX1",
+      "premium_per_paycheck": {"employee": 100.00, "employee_spouse": 250.00, "employee_children": 220.00, "family": 380.00},
+      "employer_hsa": {"self": 0, "other_tiers": 0},
+      "in_network": {
+        "deductible": {"individual": 500, "family": 1000, "family_type": "embedded", "per_person_cap": null},
+        "oop_max": {"individual": 3000, "family": 6000, "family_type": "embedded", "includes_pharmacy": true},
+        "coinsurance": 0.20,
+        "services": {
+          "preventive": {"rule": "covered_100"},
+          "office_visit_pcp": {"rule": "copay", "copay": 25},
+          "office_visit_specialist": {"rule": "copay", "copay": 50},
+          "complex_imaging": {"rule": "deductible_then_coinsurance"},
+          "xray_lab": {"rule": "coinsurance_no_deductible"},
+          "inpatient": {"rule": "deductible_then_coinsurance"},
+          "outpatient_hospital": {"rule": "deductible_then_coinsurance"},
+          "urgent_care": {"rule": "copay", "copay": 50},
+          "emergency": {"rule": "copay", "copay": 150}
+        },
+        "pharmacy": {"deductible_applies": false, "retail_30": [10, 35, 60], "retail_90": [30, 105, 180], "mail_90": [20, 70, 120]}
+      },
+      "out_of_network": {
+        "deductible": {"individual": 1000, "family": 2000, "family_type": "embedded", "per_person_cap": null},
+        "oop_max": {"individual": 6000, "family": 12000, "family_type": "embedded"},
+        "coinsurance": 0.40
+      }
+    },
+    "example_hdhp": {
+      "name": "Example HDHP",
+      "hsa_eligible": true,
+      "source": "EX1",
+      "premium_per_paycheck": {"employee": 40.00, "employee_spouse": 120.00, "employee_children": 100.00, "family": 180.00},
+      "employer_hsa": {"self": 750, "other_tiers": 1500},
+      "in_network": {
+        "deductible": {"individual": 2000, "family": 4000, "family_type": "aggregate", "per_person_cap": null},
+        "oop_max": {"individual": 5000, "family": 10000, "family_type": "aggregate", "includes_pharmacy": true},
+        "coinsurance": 0.20,
+        "services": {
+          "preventive": {"rule": "covered_100"},
+          "office_visit_pcp": {"rule": "deductible_then_coinsurance"},
+          "office_visit_specialist": {"rule": "deductible_then_coinsurance"},
+          "complex_imaging": {"rule": "deductible_then_coinsurance"},
+          "xray_lab": {"rule": "deductible_then_coinsurance"},
+          "inpatient": {"rule": "deductible_then_coinsurance"},
+          "outpatient_hospital": {"rule": "deductible_then_coinsurance"},
+          "urgent_care": {"rule": "deductible_then_coinsurance"},
+          "emergency": {"rule": "deductible_then_coinsurance"}
+        },
+        "pharmacy": {"deductible_applies": true, "retail_30": [10, 35, 60], "retail_90": [30, 105, 180], "mail_90": [20, 70, 120]}
+      },
+      "out_of_network": {
+        "deductible": {"individual": 4000, "family": 8000, "family_type": "aggregate", "per_person_cap": null},
+        "oop_max": {"individual": 10000, "family": 20000, "family_type": "aggregate"},
+        "coinsurance": 0.40
+      }
+    }
+  },
+  "assumptions": [
+    {"path": "plans.example_hdhp.in_network.deductible", "note": "Example of recording how a value was interpreted from the source document."}
+  ]
+}

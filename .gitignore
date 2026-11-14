@@ -1,0 +1,47 @@
+# --- Privacy guard -----------------------------------------------------------
+# Real EOB PDFs, claim exports, plan documents and extractor output contain or
+# derive from PHI and must never be committed. Only the synthetic fixtures are
+# allowed. Keep all real files in .local/ (see README).
+*.pdf
+*.csv
+*.xlsx
+*.xlsm
+*.xls
+*.doc
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.heic
+!cigna_eob_synthetic_test_data/**/*.pdf
+!cigna_eob_synthetic_test_data/**/*.csv
+PrivateEOBs/
+EOB_Analysis_Output/
+output/
+.local/
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Editors / OS -------------------------------------------------------------
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
