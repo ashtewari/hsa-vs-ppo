@@ -23,6 +23,7 @@ HSA vs. PPO decision toolkit built on the user's own Cigna Explanation of Benefi
 | [tools/privacy_check.py](./tools/privacy_check.py) | Repository privacy guard used by the pre-commit hook in [.githooks/](./.githooks/): blocks private file types and `.local/`, scans for PII patterns and private terms. |
 | [tools/profile_table.py](./tools/profile_table.py), [tools/convert_claims.py](./tools/convert_claims.py) | Data intake for non-Cigna or unfamiliar files: describe a CSV/XLSX without printing values; map any claims export onto the extractor's claim-summary layouts (or write a blank manual-entry template). |
 | [.github/skills/hsa-plan-decision/](./.github/skills/hsa-plan-decision/) | Agent skill that walks a non-expert through the whole analysis with their own data. **When helping someone run the analysis, load and follow it.** Keep it in sync when CLI options, layouts, or issue codes change. |
+| [.claude/skills/hsa-plan-decision/](./.claude/skills/hsa-plan-decision/), [CLAUDE.md](./CLAUDE.md) | Claude Code entry points. The skill is a stub that points to the canonical `.github/skills/` copy; its frontmatter must match the canonical `name`/`description` exactly (`tools/tests/test_agent_skills.py` checks this). `CLAUDE.md` imports this file. Edit the canonical skill and this file, not the stubs. |
 | `.local/` | **Gitignored.** The user's real claims, EOBs, plan documents, estimates, plan parameters, and outputs. Never commit, print, or paste its contents. |
 
 ## Environment
