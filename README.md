@@ -25,7 +25,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe demo\run_demo.py
 ```
 
-On macOS/Linux, use `python3 -m venv .venv` and `.venv/bin/python`. Open `demo\output\hsa_comparison_demo.xlsx` and start on **Annual comparison**. If you'd rather not run anything, download the demo workbook from the [latest release](https://github.com/ashtewari/hsa-vs-ppo/releases/latest).
+On macOS/Linux, use `python3 -m venv .venv` and `.venv/bin/python`. Open `demo\output\hsa_comparison_demo.xlsx` and start on **Annual comparison**. If you'd rather not run anything, download the demo workbook from the [latest release](https://github.com/ashtewari/hsa-vs-ppo/releases/latest). For the guided version, ask an AI agent: *"Walk me through the HSA decision with the demo family"* (see [below](#let-an-ai-agent-walk-you-through-it)).
 
 ![Annual comparison sheet for the fictional demo family: Example PPO net annual cost $7,785.58, Example HDHP $2,995.43](./docs/images/demo-annual-comparison.png)
 
@@ -98,6 +98,8 @@ Open the workbook. It opens on **Annual comparison**, with a chart of each plan'
 If you're not sure what information you need, or your files come from another insurer, in another format, or you have none at all, use the **[hsa-plan-decision skill](./.github/skills/hsa-plan-decision/SKILL.md)** with an agent that supports Agent Skills (for example GitHub Copilot in VS Code or the Copilot CLI, which read `.github/skills/`, or Claude Code, which finds it through `.claude/skills/`). Ask: *"Should I switch to an HSA plan? Walk me through it."*
 
 The skill interviews you, tells you exactly which documents to fetch and where to find them, and converts any claims export with `tools/profile_table.py` and `tools/convert_claims.py`. If you have no records, it builds estimates from a short interview about your family's care. It then runs the steps above and explains the result. It follows a privacy protocol that tells the agent to work through local tools that print counts and totals, and not to open your claims. The agent itself runs on a cloud AI model, so read the [privacy model](#privacy-model) first.
+
+To rehearse with nothing personal first, ask *"Walk me through the HSA decision with the demo family."* The skill's [demo mode](./demo/README.md#try-it-with-an-ai-agent-the-skills-demo-mode) runs the same steps on the fictional family, with every interview answer pre-filled.
 
 ## Repository layout
 

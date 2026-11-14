@@ -66,6 +66,33 @@ class DemoTests(unittest.TestCase):
                 run_demo.main(["--output", t])
             self.assertTrue(keep.is_file())
 
+    def test_inputs_only_for_the_skill_demo_mode(self):
+        with tempfile.TemporaryDirectory() as t:
+            out = Path(t) / "demo"
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(run_demo.main(["--output", str(out), "--inputs-only"]), 0)
+            self.assertFalse((out / "extract").exists())
+            summary = (out / "inputs" / "benefits_summary.md").read_text(encoding="utf-8")
+        # The benefits summary is rendered from the example plan parameters the demo compares.
+        for text in ("| Family | $380.00 | $180.00 |", "| Any other tier | n/a | $1,500 |",
+                     "$4,000 family (aggregate", "| Primary care visit | $25 copay | Deductible, then 20% coinsurance |",
+                     "| Prescriptions: deductible first? | No | Yes"):
+            self.assertIn(text, summary)
+
+    def test_approve_flagged_only_touches_missing_eob_rows(self):
+        with tempfile.TemporaryDirectory() as t:
+            review = Path(t) / "review_candidates.csv"
+            review.write_text("approved,eob_id,allowed_basis,issue_codes\n"
+                              "no,CLM_00001,derived_from_paid_plus_owed,no_matching_eob_pdf\n"
+                              "no,CLM_00002,derived_from_paid_plus_owed,no_matching_eob_pdf;claim_denied\n",
+                              encoding="utf-8-sig")
+            with contextlib.redirect_stdout(io.StringIO()):
+                run_demo.main(["--approve-flagged", str(review)])
+            with review.open(encoding="utf-8-sig") as f:
+                rows = list(csv.DictReader(f))
+        self.assertEqual([(r["approved"], r["allowed_basis"]) for r in rows],
+                         [("yes", "manually_verified"), ("no", "derived_from_paid_plus_owed")])
+
 
 if __name__ == "__main__":
     unittest.main()

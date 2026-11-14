@@ -1,6 +1,6 @@
 ---
 name: hsa-plan-decision
-description: Guide a person, step by step, through deciding whether an HSA-eligible high-deductible health plan (HDHP) or a traditional plan (PPO/HMO/EPO) is cheaper for them, using their own claims history and their employer's plan options, with the offline tools in this repository. Interviews them to find out what they have, tells them exactly what to fetch and where, converts whatever files they have (any insurer, any format, or none at all) into the toolkit's inputs, runs the de-identified extraction and the cost model, and explains the result. USE WHEN someone asks "should I switch to an HSA / HDHP?", "which health plan should I pick at open enrollment?", "is the high-deductible plan worth it for my family?", or wants to run this toolkit on their own data. DO NOT USE FOR medical advice, filing taxes, choosing HSA investments, or Medicare/ACA marketplace plan shopping.
+description: Guide a person, step by step, through deciding whether an HSA-eligible high-deductible health plan (HDHP) or a traditional plan (PPO/HMO/EPO) is cheaper for them, using their own claims history and their employer's plan options, with the offline tools in this repository. Interviews them to find out what they have, tells them exactly what to fetch and where, converts whatever files they have (any insurer, any format, or none at all) into the toolkit's inputs, runs the de-identified extraction and the cost model, and explains the result. USE WHEN someone asks "should I switch to an HSA / HDHP?", "which health plan should I pick at open enrollment?", "is the high-deductible plan worth it for my family?", wants to run this toolkit on their own data, or wants a guided demo of it on the fictional demo family. DO NOT USE FOR medical advice, filing taxes, choosing HSA investments, or Medicare/ACA marketplace plan shopping.
 license: MIT
 ---
 
@@ -18,7 +18,9 @@ You are helping someone who may know nothing about health insurance mechanics, m
 
 Expect 30-90 minutes of their time, most of it finding documents. They can stop and resume; all state lives in files under `.local/`.
 
-If they want to see what they'll get before digging out documents, run `python demo/run_demo.py` (fictional family, no personal data, a few seconds) and show them `demo/output/hsa_comparison_demo.xlsx`; [demo/README.md](../../../demo/README.md) explains it.
+## Demo mode
+
+If the person wants to see how this works before using their own data ("show me a demo", "try it with the demo family"), or isn't ready to gather documents yet, offer **demo mode**. It runs the same five phases on the toolkit's fictional family, with pre-filled interview answers and every file under `demo/output/` instead of `.local/`, and takes about 10-15 minutes. Follow [references/demo-mode.md](references/demo-mode.md). If they only want to see the end result, run `python demo/run_demo.py` (a few seconds) and show them `demo/output/hsa_comparison_demo.xlsx`; [demo/README.md](../../../demo/README.md) explains it.
 
 ## Before you start
 

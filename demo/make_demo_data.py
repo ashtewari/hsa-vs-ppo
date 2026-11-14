@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the demo's synthetic inputs: myCigna-style claim CSVs, EOB PDFs and a leak-terms file.
+"""Write the demo's synthetic inputs: myCigna-style claim CSVs, EOB PDFs, a leak-terms file and a benefits summary.
 
 Everything here is fictional: the "Demo" family, providers, drugs and IDs are made up, and the PDFs are
 stamped "SYNTHETIC DEMO - not a Cigna document". Amounts are hand-set so that replaying them under the
@@ -11,11 +11,14 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 from datetime import date
 from pathlib import Path
 
 import pymupdf
 
+ROOT = Path(__file__).resolve().parents[1]
+PLANS = ROOT / "plan_parameters" / "plan_parameters.example.json"
 STAMP = "SYNTHETIC DEMO - not a Cigna document"
 MEMBER_ID = "DEMO-0042"
 ADDRESS = "42 Example Lane, Sampleton"
@@ -109,6 +112,67 @@ def write_eob(path: Path, n: int, claim: tuple):
     doc.close()
 
 
+def rule_text(rule: dict, coinsurance: float) -> str:
+    pct = f"{coinsurance:.0%}"
+    return {"covered_100": "Covered in full",
+            "copay": f"${rule.get('copay', 0):,.0f} copay",
+            "coinsurance_no_deductible": f"{pct} coinsurance, no deductible",
+            "deductible_then_coinsurance": f"Deductible, then {pct} coinsurance",
+            "deductible_then_covered_100": "Deductible, then covered in full"}.get(rule["rule"], rule["rule"])
+
+
+def limit_text(limits: dict) -> str:
+    kind = {"embedded": "embedded: no one person pays more than the individual amount",
+            "aggregate": "aggregate: with family coverage, the whole family amount must be met first"}
+    return (f"${limits['individual']:,.0f} individual / ${limits['family']:,.0f} family "
+            f"({kind.get(limits['family_type'], limits['family_type'])})")
+
+
+def benefits_summary(params: dict) -> str:
+    """A fictional employer benefits summary, rendered from the example plan parameters (the demo's 'SBC')."""
+    services = [("preventive", "Preventive care"), ("office_visit_pcp", "Primary care visit"),
+                ("office_visit_specialist", "Specialist visit"), ("urgent_care", "Urgent care"),
+                ("emergency", "Emergency room"), ("xray_lab", "Lab work and X-rays"),
+                ("complex_imaging", "MRI / CT / PET scans"), ("outpatient_hospital", "Outpatient surgery"),
+                ("inpatient", "Hospital stay")]
+    tiers = [("employee", "You only"), ("employee_spouse", "You + spouse"),
+             ("employee_children", "You + children"), ("family", "Family")]
+    plans = params["plans"].values()
+    head = "| | " + " | ".join(p["name"] for p in plans) + " |\n|---|" + "---|" * len(plans) + "\n"
+
+    def row(label, fn):
+        return f"| {label} | " + " | ".join(fn(p) for p in plans) + " |\n"
+
+    md = [f"# Example Co. {params['plan_year']} medical plans: benefits summary\n\n",
+          "**SYNTHETIC DEMO.** A fictional employer's plans for the HSA vs. PPO demo. It stands in for the "
+          "Summary of Benefits and Coverage (SBC) and premium sheet a real person would download from their "
+          "benefits portal. Generated from `plan_parameters/plan_parameters.example.json`.\n\n",
+          f"## Premiums per paycheck ({params['pay_periods_per_year']} paychecks a year, deducted before tax)\n\n",
+          head, *[row(label, lambda p, t=t: f"${p['premium_per_paycheck'][t]:,.2f}") for t, label in tiers],
+          "\n## Employer HSA contribution (HSA-eligible plans only, per year)\n\n", head,
+          row("You only", lambda p: f"${p['employer_hsa']['self']:,.0f}" if p["hsa_eligible"] else "n/a"),
+          row("Any other tier", lambda p: f"${p['employer_hsa']['other_tiers']:,.0f}" if p["hsa_eligible"] else "n/a"),
+          "\n## In-network\n\n", head,
+          row("HSA-eligible (HDHP)", lambda p: "Yes" if p["hsa_eligible"] else "No"),
+          row("Deductible", lambda p: limit_text(p["in_network"]["deductible"])),
+          row("Out-of-pocket maximum", lambda p: limit_text(p["in_network"]["oop_max"])
+              + (", includes prescriptions" if p["in_network"]["oop_max"].get("includes_pharmacy") else "")),
+          row("Coinsurance", lambda p: f"{p['in_network']['coinsurance']:.0%}"),
+          *[row(label, lambda p, s=s: rule_text(p["in_network"]["services"][s], p["in_network"]["coinsurance"]))
+            for s, label in services],
+          row("Prescriptions: deductible first?", lambda p: "Yes, full cost until the deductible is met"
+              if p["in_network"]["pharmacy"]["deductible_applies"] else "No"),
+          *[row(f"Prescriptions: {label} (tier 1 / 2 / 3)",
+                lambda p, c=c: " / ".join(f"${x:,.0f}" for x in p["in_network"]["pharmacy"][c]))
+            for c, label in (("retail_30", "retail 30-day"), ("retail_90", "retail 90-day"),
+                             ("mail_90", "mail order 90-day"))],
+          "\n## Out-of-network\n\n", head,
+          row("Deductible", lambda p: limit_text(p["out_of_network"]["deductible"])),
+          row("Out-of-pocket maximum", lambda p: limit_text(p["out_of_network"]["oop_max"])),
+          row("Coinsurance (after deductible)", lambda p: f"{p['out_of_network']['coinsurance']:.0%}")]
+    return "".join(md)
+
+
 def write_inputs(folder: Path) -> dict[str, Path]:
     """Write every synthetic input into `folder` and return their paths."""
     folder.mkdir(parents=True, exist_ok=True)
@@ -120,7 +184,9 @@ def write_inputs(folder: Path) -> dict[str, Path]:
         "pharmacy": folder / "Claim_Summary_pharmacy.csv",
         "eob_dir": eob_dir,
         "leak_terms": folder / "leak_terms.txt",
+        "benefits": folder / "benefits_summary.md",
     }
+    paths["benefits"].write_text(benefits_summary(json.loads(PLANS.read_text(encoding="utf-8"))), encoding="utf-8")
     write_csv(paths["medical"], ["Service Date", "Patient", "Provider", "Status", "Billed", "Plan Paid",
                                  "Patient Responsibility", "I Owe", "My Payments"],
               [[mdy(d), who, prov, "Processed", usd(b), usd(p), usd(o), usd(0), usd(o)]

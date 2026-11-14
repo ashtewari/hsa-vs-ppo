@@ -57,13 +57,29 @@ Things to try in the workbook:
 - **Scenarios**, **Break-even**, **Cash flow** and **Projection** show what happens in a bad year, month by month, and over five years.
 - **Claims replay** shows every claim under both plans.
 
+## Try it with an AI agent (the skill's demo mode)
+
+`run_demo.py` shows the result. To see the guided experience, ask an agent that supports Agent Skills to run the [hsa-plan-decision skill](../.github/skills/hsa-plan-decision/SKILL.md) on this family: GitHub Copilot in VS Code or the Copilot CLI, or Claude Code. Open the repository in the agent and ask:
+
+> *"Walk me through the HSA decision with the demo family."*
+
+The agent runs the same five phases it would with your data, in about 10-15 minutes:
+
+1. **Interview:** the family's answers are pre-filled as defaults. Accept them, or change one (say, your state tax rate or HSA contribution) and watch it carry through.
+2. **Plans:** it reads the fictional benefits summary and checks the plan-parameters file against it.
+3. **Claims:** it extracts the synthetic claims, goes through the two flagged rows with you, and runs the leak scan.
+4. **Comparison:** it runs the cost model and checks the baseline.
+5. **Result:** it explains the workbook, then tells you what to gather for a run on your own data.
+
+It follows the same privacy protocol as a real run, for example never opening the claim files. The files go to `demo/output/`, not `.local/`. The steps are in [demo-mode.md](../.github/skills/hsa-plan-decision/references/demo-mode.md).
+
 ## Run it on your own data
 
 Follow the [Quick start](../README.md#quick-start-windows-powershell) with your files in `.local\`, or let the [hsa-plan-decision skill](../.github/skills/hsa-plan-decision/SKILL.md) walk you through it.
 
 ## For maintainers
 
-- `demo\tests\test_demo.py` runs the demo and pins the net costs above. If a change moves them, regenerate the screenshot and update the figures in this file and the top-level README.
+- `demo\tests\test_demo.py` runs the demo and pins the net costs above. If a change moves them, regenerate the screenshot and update the figures in this file, the top-level README and the skill's [demo-mode.md](../.github/skills/hsa-plan-decision/references/demo-mode.md).
 - Regenerate the screenshot (Windows with Microsoft Excel):
 
   ```powershell

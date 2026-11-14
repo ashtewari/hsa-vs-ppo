@@ -11,6 +11,8 @@ Runs the same steps a real user runs (README "Quick start"), on synthetic data o
   7. cost model    -> hsa_comparison_demo.xlsx
 
 Usage:  python demo/run_demo.py [--output demo/output]
+        python demo/run_demo.py --inputs-only                  # step 1 only, for the skill's demo mode
+        python demo/run_demo.py --approve-flagged REVIEW_CSV   # step 3 only
 Everything is written under --output, which is wiped and recreated on every run (only if a previous demo run
 created it, or it is empty).
 """
@@ -95,7 +97,15 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Run the HSA vs. PPO toolkit end to end on a fictional family.")
     ap.add_argument("--output", type=Path, default=ROOT / "demo" / "output",
                     help="Folder for all demo files (wiped and recreated; must be empty or a previous demo output)")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--inputs-only", action="store_true",
+                      help="Only write the synthetic inputs (for the hsa-plan-decision skill's demo mode)")
+    mode.add_argument("--approve-flagged", type=Path, metavar="REVIEW_CSV",
+                      help="Only approve the rows flagged no_matching_eob_pdf in a demo review_candidates.csv")
     args = ap.parse_args(argv)
+    if args.approve_flagged:
+        print(f"Approved {approve_flagged_rows(args.approve_flagged)} rows flagged no_matching_eob_pdf.")
+        return 0
     out = args.output.resolve()
     prepare_output(out)
     inputs, extracted, workbook = out / "inputs", out / "extract", out / WORKBOOK_NAME
@@ -104,7 +114,9 @@ def main(argv: list[str] | None = None) -> int:
     paths = make_demo_data.write_inputs(inputs)
     print(f"{len(make_demo_data.MEDICAL)} medical, {len(make_demo_data.PHARMACY)} pharmacy and "
           f"{len(make_demo_data.DENTAL)} dental claims for 2025; "
-          f"{len(list(paths['eob_dir'].glob('*.pdf')))} EOB PDFs -> {show(inputs)}")
+          f"{len(list(paths['eob_dir'].glob('*.pdf')))} EOB PDFs; benefits summary -> {show(inputs)}")
+    if args.inputs_only:
+        return 0
     claims_csvs = [paths["medical"], paths["dental"], paths["pharmacy"]]
 
     step("2. Extract de-identified claims")

@@ -36,7 +36,7 @@ python -m pytest -q
 
 The suite includes byte-for-byte checks of every synthetic fixture. If a change intentionally alters the extractor's output, regenerate every `cigna_eob_synthetic_test_data/**/expected_output/` folder (run `extract` into a temp folder and copy the CSVs), and explain why in the pull request.
 
-It also runs the [demo](./demo/README.md) end to end and pins its net costs. If a change moves them or alters the **Annual comparison** sheet, regenerate the screenshot (`python demo\run_demo.py`, then `python demo\make_screenshot.py`; needs Windows with Microsoft Excel) and update the figures in `demo/README.md` and `README.md`.
+It also runs the [demo](./demo/README.md) end to end and pins its net costs. If a change moves them or alters the **Annual comparison** sheet, regenerate the screenshot (`python demo\run_demo.py`, then `python demo\make_screenshot.py`; needs Windows with Microsoft Excel) and update the figures in `demo/README.md`, `README.md` and the skill's `references/demo-mode.md`.
 
 ## Pull requests
 
