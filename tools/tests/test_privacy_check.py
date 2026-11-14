@@ -46,6 +46,19 @@ class PrivacyCheckTests(unittest.TestCase):
         self.assertIn(".local/notes.md: private_folder", report)
         self.assertNotIn("cigna_eob_synthetic_test_data", report)
 
+    def test_allows_only_demo_screenshots_under_docs_images(self):
+        self.stage("docs/images/demo-annual-comparison.png", b"\x89PNG\r\n\x1a\n")
+        self.assertEqual(self.run_check()[0], 0)
+        for rel in ("docs/images/my-workbook.png", "docs/demo-x.png", "docs/images/demo-x.xlsx",
+                    "docs/images/demo-x.csv", "docs/images/sub/demo-x.png"):
+            self.stage(rel, b"x")
+        code, report = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertNotIn("demo-annual-comparison.png", report)
+        for rel in ("docs/images/my-workbook.png", "docs/demo-x.png", "docs/images/demo-x.xlsx",
+                    "docs/images/demo-x.csv", "docs/images/sub/demo-x.png"):
+            self.assertIn(f"{rel}: blocked_file_type", report)
+
     def test_flags_pii_patterns_without_printing_values(self):
         self.stage("ok.md", "C:\\Users\\YourUser\\Documents\nref 998877665544\nfoo@users.noreply.github.com\n"
                             "ssn 123-45-6789 privacy-check: ignore\n")  # privacy-check: ignore

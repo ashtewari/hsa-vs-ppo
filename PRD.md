@@ -243,7 +243,7 @@ Employee HSA contributions are **not** an expense. The money stays the user's an
 | CM-12 – CM-15 | ✅ | Low = pharmacy + preventive claims of the base year; high = typical + one $20,000 inpatient event; worst case = in-network OOP maximum; break-even adds one event of growing size |
 | CM-16 | ✅ | Strategy: invest any HSA balance; HSA-eligible spending (incl. dental and vision) is paid from the HSA |
 | CM-17 | 🟡 | Utilization scaling ×0.5 – ×2.0; allowed-amount and network sensitivity not separate |
-| CM-18, CM-19 | ✅ | Parameter-driven sheets are live Excel formulas whose results equal the Python engine; the claim replay is values |
+| CM-18, CM-19 | ✅ | Parameter-driven sheets are live Excel formulas whose results equal the Python engine; the claim replay is values. Annual comparison charts the base year's net cost per plan from the live cells |
 
 ### 8.3 Illustrative output (hypothetical figures)
 
@@ -336,11 +336,12 @@ If a cloud AI assistant is used for Phase 2 analysis, turn off model training in
 
 ### 12.1 Existing synthetic test assets
 
-- Unit tests: [test_extractor.py](./cigna_eob_local/tests/test_extractor.py), [test_validate_plan_parameters.py](./plan_parameters/tests/test_validate_plan_parameters.py), [test_cost_model.py](./hsa_cost_model/tests/test_cost_model.py) and [test_privacy_check.py](./tools/tests/test_privacy_check.py). Run from the repository root with `python -m pytest -q`. They cover:
+- Unit tests: [test_extractor.py](./cigna_eob_local/tests/test_extractor.py), [test_validate_plan_parameters.py](./plan_parameters/tests/test_validate_plan_parameters.py), [test_cost_model.py](./hsa_cost_model/tests/test_cost_model.py), [test_privacy_check.py](./tools/tests/test_privacy_check.py) and [test_demo.py](./demo/tests/test_demo.py). Run from the repository root with `python -m pytest -q`. They cover:
   - every synthetic fixture reproducing its expected CSVs byte-for-byte
   - the real Cigna layout: cover page, wrapped labels, omitted not-covered row, network status
   - claim-CSV import with PDF matching, estimates, RV-8, hash-only duplicates, image-only scans
   - PHI-leak checks and the leak scanner
+  - the end-to-end [demo](./demo/README.md) on a fictional family (extract, review, finalize, leak scan, cost model), with its net costs pinned
 - Fixtures and expected outputs: [cigna_eob_synthetic_test_data/](./cigna_eob_synthetic_test_data/). Fictional, simplified "Cigna-like" layouts, **not** real Cigna templates.
 
 | Case | Billed | Discount | Not cov. | Plan paid | Owes | Expected |

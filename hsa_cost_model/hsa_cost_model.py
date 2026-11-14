@@ -531,6 +531,9 @@ def sensitivity(claims: list[Claim], params: dict, cfg: Config,
 
 def build_workbook(claims: list[Claim], params: dict, cfg: Config, out: Path, sources: dict[str, str]):
     from openpyxl import Workbook
+    from openpyxl.chart import BarChart, Reference
+    from openpyxl.chart.data_source import AxDataSource, StrRef
+    from openpyxl.chart.label import DataLabelList
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
 
@@ -727,6 +730,24 @@ def build_workbook(claims: list[Claim], params: dict, cfg: Config, out: Path, so
             c = ac.cell(row=row, column=10, value=f"=I{row}-{current_net_cell[y]}")
             c.number_format = money_fmt
     widths(ac, [10, 26, 13, 15, 15, 13, 14, 13, 15, 15, 20])
+    base_rows = [r for r in range(5, ar + 1) if ac.cell(row=r, column=1).value == year0]
+    if base_rows:
+        # Linked to the live net-cost formulas, so it follows edits on the Parameters sheet.
+        chart = BarChart()
+        chart.type = "col"
+        chart.varyColors = True
+        chart.title = f"Net annual cost, plan year {year0} (estimate; lower is better)"
+        chart.title.overlay = False
+        chart.add_data(Reference(ac, min_col=9, min_row=base_rows[0], max_row=base_rows[-1]))
+        chart.series[0].cat = AxDataSource(strRef=StrRef(f=f"'Annual comparison'!$B${base_rows[0]}:$B${base_rows[-1]}"))
+        chart.legend = None
+        chart.y_axis.numFmt = '"$"#,##0'
+        chart.y_axis.majorGridlines = None
+        chart.x_axis.delete = chart.y_axis.delete = False
+        chart.dataLabels = DataLabelList(showVal=True, showLegendKey=False, showCatName=False, showSerName=False,
+                                         showPercent=False, showBubbleSize=False)
+        chart.width, chart.height = 24, 8
+        ac.add_chart(chart, f"B{ar + 3}")
 
     # Baseline check ------------------------------------------------------------------------------
     bc = sheet("Baseline check", f"Replay of the current plan ({names[current]}) vs. what was actually owed")

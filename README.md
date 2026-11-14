@@ -13,6 +13,24 @@ The full requirements are in [PRD.md](./PRD.md).
 > [!IMPORTANT]
 > **Disclaimer.** This is a personal decision-support tool, provided as is under the [MIT License](./LICENSE). It is **not** medical, tax, legal, insurance or financial advice, and every figure it produces is an estimate. It assumes your doctors and negotiated prices stay the same on every plan, and health care costs are unpredictable. Check results against your plan documents and the IRS rules for your plan year. This project is **not affiliated with, endorsed by, or sponsored by Cigna**; "Cigna" and "myCigna" are trademarks of their owners and are used only to describe the file formats the tool reads.
 
+## Try it in 2 minutes (no personal data)
+
+The demo runs every step on a fictional family of four: a year of synthetic claim exports and EOB PDFs, compared under two example plans. It ends with the Excel workbook.
+
+```powershell
+git clone https://github.com/ashtewari/hsa-vs-ppo.git
+cd hsa-vs-ppo
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe demo\run_demo.py
+```
+
+On macOS/Linux, use `python3 -m venv .venv` and `.venv/bin/python`. Open `demo\output\hsa_comparison_demo.xlsx` and start on **Annual comparison**. If you'd rather not run anything, download the demo workbook from the [latest release](https://github.com/ashtewari/hsa-vs-ppo/releases/latest).
+
+![Annual comparison sheet for the fictional demo family: Example PPO net annual cost $7,785.58, Example HDHP $2,995.43](./docs/images/demo-annual-comparison.png)
+
+*Fictional family and plans. Here the HDHP costs about $4,790 less: the family pays $2,707 more at the doctor and pharmacy, but premiums are $5,200 lower and the employer's HSA money and the tax break more than cover it. With your plans and claims the answer can flip. See [what the demo shows](./demo/README.md).*
+
 ## Privacy model
 
 The project has two parts, and it helps to be clear about what goes where:
@@ -73,7 +91,7 @@ python plan_parameters\validate_plan_parameters.py .local\plan_parameters.json
 python hsa_cost_model\hsa_cost_model.py --claims .local\output\claims_anonymized.csv --plans .local\plan_parameters.json --output .local\output\hsa_comparison.xlsx
 ```
 
-Open the workbook. Edit the yellow cells on **Parameters** to try different contributions, tax rates or premiums, and read the **Assumptions** sheet before drawing conclusions.
+Open the workbook. It opens on **Annual comparison**, with a chart of each plan's net annual cost. Edit the yellow cells on **Parameters** to try different contributions, tax rates or premiums, and read the **Assumptions** sheet before drawing conclusions.
 
 ## Let an AI agent walk you through it
 
@@ -89,6 +107,8 @@ The skill interviews you, tells you exactly which documents to fetch and where t
 | [cigna_eob_synthetic_test_data/](./cigna_eob_synthetic_test_data/) | Synthetic fixture PDFs and expected CSVs (no real data) |
 | [plan_parameters/](./plan_parameters/) | Plan-parameters JSON validator and a fictional example |
 | [hsa_cost_model/](./hsa_cost_model/) | Phase 2 claims replay and Excel workbook writer |
+| [demo/](./demo/) | One-command demo on a fictional family (`run_demo.py`), its synthetic data generator, and the screenshot script |
+| [docs/images/](./docs/images/) | Screenshots of the synthetic demo (the only images the privacy guard allows) |
 | [tools/](./tools/) | `privacy_check.py` (the repository privacy guard used by [.githooks/pre-commit](./.githooks/pre-commit)); `profile_table.py` and `convert_claims.py` for bringing in claims exports from any insurer |
 | [.github/skills/hsa-plan-decision/](./.github/skills/hsa-plan-decision/) | Agent skill that guides anyone through the whole analysis with their own data ([.claude/skills/](./.claude/skills/) holds a pointer to it for Claude Code) |
 | [PRD.md](./PRD.md) | Requirements, design decisions, limitations |

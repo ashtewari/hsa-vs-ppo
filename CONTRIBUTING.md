@@ -22,7 +22,7 @@ git config core.hooksPath .githooks
 
 The last line enables the **pre-commit privacy guard** ([tools/privacy_check.py](./tools/privacy_check.py)). On every commit it:
 
-- blocks files under `.local/` and any PDF, CSV, spreadsheet, document, image or archive outside `cigna_eob_synthetic_test_data/`;
+- blocks files under `.local/` and any PDF, CSV, spreadsheet, document, image or archive outside `cigna_eob_synthetic_test_data/` (the one exception is `docs/images/demo-*.png`, screenshots of the synthetic demo);
 - scans staged text for email addresses, phone numbers, SSNs, 7+ digit IDs and absolute user-home paths;
 - scans for your own private terms, one per line, in the gitignored `.local/private_terms.txt` and `.local/leak_terms.txt`. Put your name, family names, employer, plan names, providers and member IDs there.
 
@@ -35,6 +35,8 @@ python -m pytest -q
 ```
 
 The suite includes byte-for-byte checks of every synthetic fixture. If a change intentionally alters the extractor's output, regenerate every `cigna_eob_synthetic_test_data/**/expected_output/` folder (run `extract` into a temp folder and copy the CSVs), and explain why in the pull request.
+
+It also runs the [demo](./demo/README.md) end to end and pins its net costs. If a change moves them or alters the **Annual comparison** sheet, regenerate the screenshot (`python demo\run_demo.py`, then `python demo\make_screenshot.py`; needs Windows with Microsoft Excel) and update the figures in `demo/README.md` and `README.md`.
 
 ## Pull requests
 

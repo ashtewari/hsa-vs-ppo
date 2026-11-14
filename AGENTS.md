@@ -20,6 +20,8 @@ HSA vs. PPO decision toolkit built on the user's own Cigna Explanation of Benefi
 | [cigna_eob_synthetic_test_data/](./cigna_eob_synthetic_test_data/) | Synthetic fixture PDFs and expected CSV outputs. |
 | [plan_parameters/](./plan_parameters/) | Plan-parameters validator, fictional example JSON, and tests. Real plan files live in `.local/`. |
 | [hsa_cost_model/](./hsa_cost_model/) | Phase 2 claims replay + Excel workbook writer (`hsa_cost_model.py`) and hand-calculated tests. |
+| [demo/](./demo/) | One-command synthetic demo (`run_demo.py`: fictional family → every Phase 1/2 step → workbook), its data generator, the Windows+Excel screenshot script, and an end-to-end test that pins the demo's net costs. |
+| [docs/images/](./docs/images/) | `demo-*.png` screenshots of the synthetic demo: the only images the privacy guard allows. Regenerate with `demo/make_screenshot.py` when the pinned demo numbers or the Annual comparison sheet change. |
 | [tools/privacy_check.py](./tools/privacy_check.py) | Repository privacy guard used by the pre-commit hook in [.githooks/](./.githooks/): blocks private file types and `.local/`, scans for PII patterns and private terms. |
 | [tools/profile_table.py](./tools/profile_table.py), [tools/convert_claims.py](./tools/convert_claims.py) | Data intake for non-Cigna or unfamiliar files: describe a CSV/XLSX without printing values; map any claims export onto the extractor's claim-summary layouts (or write a blank manual-entry template). |
 | [.github/skills/hsa-plan-decision/](./.github/skills/hsa-plan-decision/) | Agent skill that walks a non-expert through the whole analysis with their own data. **When helping someone run the analysis, load and follow it.** Keep it in sync when CLI options, layouts, or issue codes change. |
@@ -59,6 +61,10 @@ python tools\privacy_check.py --all
 
 # Validate a plan-parameters file
 python plan_parameters\validate_plan_parameters.py plan_parameters\plan_parameters.example.json
+
+# End-to-end demo on a fictional family (writes demo\output\, gitignored); screenshot needs Windows + Excel
+python demo\run_demo.py
+python demo\make_screenshot.py
 
 # Phase 2 workbook from the user's real (local) data
 python hsa_cost_model\hsa_cost_model.py --claims .local\output\claims_anonymized.csv --plans .local\plan_parameters.json --output .local\output\hsa_comparison.xlsx

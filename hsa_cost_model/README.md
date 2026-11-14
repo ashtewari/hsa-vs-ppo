@@ -41,7 +41,7 @@ Net annual cost = premiums − tax saved on pre-tax premiums + modeled medical/R
 
 | Sheet | Contents | Live formulas? |
 |---|---|---|
-| Annual comparison | Net cost per plan per plan year, vs. the current plan | ✅ |
+| Annual comparison | Net cost per plan per plan year, vs. the current plan, with a chart of the base year's net cost per plan | ✅ |
 | Scenarios | Low / typical / high utilization and worst case (OOP maximum) | ✅ (out-of-pocket from the replay) |
 | Break-even | Net cost as extra allowed spending is added; pairwise break-even points | values |
 | Cash flow | Month-by-month HSA deposits vs. HSA-eligible spending; shortfall months | values |
@@ -60,4 +60,4 @@ Edit yellow cells on **Parameters** to change premiums, employer HSA money, your
 python -m pytest hsa_cost_model -q
 ```
 
-The tests are hand-calculated cases: a deductible crossed mid-claim, the OOP-maximum cap, the preventive exemption, embedded and aggregate family deductibles, plan-year resets, Rx deductibles, service inference, the net-cost layers, break-even, and workbook structure.
+The tests are hand-calculated cases: a deductible crossed mid-claim, the OOP-maximum cap, the preventive exemption, embedded and aggregate family deductibles, plan-year resets, Rx deductibles, service inference, the net-cost layers, break-even, and workbook structure (including the chart). To see a complete run on synthetic data, use the [demo](../demo/README.md).

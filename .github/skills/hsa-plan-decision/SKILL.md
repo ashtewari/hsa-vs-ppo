@@ -18,6 +18,8 @@ You are helping someone who may know nothing about health insurance mechanics, m
 
 Expect 30-90 minutes of their time, most of it finding documents. They can stop and resume; all state lives in files under `.local/`.
 
+If they want to see what they'll get before digging out documents, run `python demo/run_demo.py` (fictional family, no personal data, a few seconds) and show them `demo/output/hsa_comparison_demo.xlsx`; [demo/README.md](../../../demo/README.md) explains it.
+
 ## Before you start
 
 - Find the repository root (it contains `AGENTS.md`, `cigna_eob_local/`, `hsa_cost_model/`). If the person doesn't have it, help them clone `https://github.com/ashtewari/hsa-vs-ppo` and follow the README quick start (Python 3.10+, venv, `pip install -r requirements.txt`, `git config core.hooksPath .githooks`).

@@ -3,7 +3,7 @@
 
 Checks each file (staged content by default, or every tracked and untracked-not-ignored file with --all):
   * path rules: nothing under .local/, and no PDF/CSV/spreadsheet/document/image/archive files outside
-    the synthetic fixture folder;
+    the synthetic fixture folder (except docs/images/demo-*.png screenshots of the synthetic demo);
   * text patterns: email addresses, phone numbers, SSNs, 7+ digit IDs, absolute user-home paths;
   * private terms: one term per line in local, gitignored files (default .local/private_terms.txt and
     .local/leak_terms.txt), matched case-insensitively as whole words in file names and contents.
@@ -20,12 +20,14 @@ import sys
 from pathlib import Path
 
 FIXTURE_DIR = "cigna_eob_synthetic_test_data/"
+FIXTURE_EXTENSIONS = {".pdf", ".csv"}
+# Screenshots of the synthetic demo (demo/make_screenshot.py) only; never screenshots of real data.
+DEMO_IMAGE_RE = re.compile(r"docs/images/demo-[a-z0-9-]+\.png")
 PRIVATE_DIRS = (".local/",)
 BLOCKED_EXTENSIONS = {
     ".pdf", ".csv", ".tsv", ".xlsx", ".xlsm", ".xls", ".ods", ".doc", ".docx", ".odt", ".rtf",
     ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".heic", ".webp", ".zip", ".7z", ".rar", ".msg", ".eml",
 }
-FIXTURE_EXTENSIONS = {".pdf", ".csv"}
 BINARY_EXTENSIONS = BLOCKED_EXTENSIONS - {".csv", ".tsv", ".rtf", ".eml"}
 DEFAULT_TERM_FILES = (".local/private_terms.txt", ".local/leak_terms.txt")
 # A line containing this marker is not scanned. Use it only for synthetic test values; it is visible in review.
@@ -62,7 +64,8 @@ def path_findings(path: str) -> list[str]:
     if any(low.startswith(d) or f"/{d}" in low for d in PRIVATE_DIRS):
         return ["private_folder"]
     suffix = Path(low).suffix
-    if suffix in BLOCKED_EXTENSIONS and not (low.startswith(FIXTURE_DIR) and suffix in FIXTURE_EXTENSIONS):
+    if suffix in BLOCKED_EXTENSIONS and not (low.startswith(FIXTURE_DIR) and suffix in FIXTURE_EXTENSIONS
+                                             or DEMO_IMAGE_RE.fullmatch(low)):
         return [f"blocked_file_type({suffix})"]
     return []
 

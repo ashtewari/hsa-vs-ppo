@@ -15,6 +15,8 @@
 *.heic
 !cigna_eob_synthetic_test_data/**/*.pdf
 !cigna_eob_synthetic_test_data/**/*.csv
+# Screenshots of the synthetic demo only (demo/make_screenshot.py); never commit screenshots of real data.
+!docs/images/demo-*.png
 PrivateEOBs/
 EOB_Analysis_Output/
 output/

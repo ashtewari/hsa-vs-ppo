@@ -201,6 +201,22 @@ class EconomicsTests(unittest.TestCase):
             self.assertTrue(str(wb["Projection"]["H12"].value or wb["Projection"]["H11"].value).startswith("="))
             self.assertTrue(all(str(ws["A1"].value).startswith("ESTIMATE") for ws in wb.worksheets))
 
+    def test_annual_comparison_chart_shows_base_year_net_cost(self):
+        import zipfile
+        claims = [claim(f"C{i:03d}", allowed="180", owes="25", paid="155", category="medical_unspecified",
+                        month=i, year=y) for y, months in ((2024, range(7, 13)), (2025, range(1, 13))) for i in months]
+        with tempfile.TemporaryDirectory() as t:
+            out = Path(t) / "cmp.xlsx"
+            m.build_workbook(claims, PARAMS, m.Config(), out, {"claims": "claims.csv", "plans": "plans.json"})
+            with zipfile.ZipFile(out) as z:
+                charts = [n for n in z.namelist() if n.startswith("xl/charts/chart")]
+                self.assertEqual(len(charts), 1)
+                xml = z.read(charts[0]).decode("utf-8")
+        # Rows 5-6 are 2024 (partial year); the chart plots the 2025 base year's live net-cost cells.
+        self.assertIn("'Annual comparison'!$I$7:$I$8", xml)
+        self.assertIn("'Annual comparison'!$B$7:$B$8", xml)
+        self.assertIn("plan year 2025", xml)
+
     def test_estimates_note_reflects_the_claims(self):
         from openpyxl import load_workbook
         actual = [claim(f"C{i:03d}", allowed="180", owes="25", paid="155", category="medical_unspecified", month=i)
